@@ -19,7 +19,7 @@ contract TestSupplyChain {
     // test for calls that are made by not the seller
     // test for trying to ship an item that is not marked Sold
 
-    // receiveItem
+    // recieveItem
 
     // test calling the function from an address that is not the buyer
     // test calling the function on an item not marked Shipped

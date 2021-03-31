@@ -64,6 +64,7 @@ contract SupplyChain {
         _;
         uint256 _price = items[_sku].price;
         uint256 amountToRefund = msg.value - _price;
+        require(amountToRefund > 0); //ensure amountToRefund is greater than 0
         items[_sku].buyer.transfer(amountToRefund);
     }
 
@@ -75,7 +76,7 @@ contract SupplyChain {
    Hint: What item properties will be non-zero when an Item has been added?
    */
     modifier forSale(uint256 _sku) {
-        require(items[_sku].price > 0);
+        require(items[_sku].state == State.ForSale && items[_sku].price > 0);
         _;
     }
     modifier sold(uint256 _sku) {
@@ -91,10 +92,15 @@ contract SupplyChain {
         _;
     }
 
-    // modifier isBuyer(uint256 _sku) {
-    //     require(items[_sku].buyer == msg.sender);
-    //     _;
-    // }
+    modifier isBuyer(uint256 _sku) {
+        require(items[_sku].buyer == msg.sender);
+        _;
+    }
+
+    modifier isSeller(uint256 _sku) {
+        require(items[_sku].seller == msg.sender);
+        _;
+    }
 
     constructor() public {
         /* Here, set the owner as the person who instantiated the contract
@@ -130,32 +136,29 @@ contract SupplyChain {
         public
         payable
         forSale(sku)
-        paidEnough(sku)
+        paidEnough(items[sku].price)
         checkValue(sku)
-        returns (bool)
     {
-        //transfer money to seller
-        items[sku].seller.transfer(msg.value);
+        //emit event
+        emit LogSold(sku);
         //set buyer
         items[sku].buyer == msg.sender;
         //set state to sold
         items[sku].state == State.Sold;
-        //emit event
-        emit LogSold(sku);
-        return true;
+        //transfer money to seller
+        items[sku].seller.transfer(msg.value);
     }
 
     /* Add 2 modifiers to check if the item is sold already, and that the person calling this function
   is the seller. Change the state of the item to shipped. Remember to call the event associated with this function!*/
-    function shipItem(uint256 sku) public sold(sku) forSale(sku) {
-        items[sku].state == State.Sold;
+    function shipItem(uint256 sku) public sold(sku) isSeller(sku) {
         emit LogShipped(sku);
+        items[sku].state == State.Shipped;
     }
 
     /* Add 2 modifiers to check if the item is shipped already, and that the person calling this function
   is the buyer. Change the state of the item to received. Remember to call the event associated with this function!*/
-    function recieveItem(uint256 sku) public shipped(sku) {
-        require(items[sku].buyer == msg.sender);
+    function recieveItem(uint256 sku) public shipped(sku) isBuyer(sku) {
         emit LogRecieved(sku);
         items[sku].state == State.Recieved;
     }
